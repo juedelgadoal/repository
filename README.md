@@ -47,6 +47,33 @@ npm run build && npm run start
    incidentes, costos, clientes afectados, cumplimiento SLA y del plan de
    contingencia, **conclusiones y recomendaciones automáticas**.
 
+## Mapa operacional (real)
+
+- **Mapa real de Colombia con Leaflet** y **selector de capas**: relieve
+  (OpenTopoMap), base oscura (CARTO) y OSM calles. Zoom para ver el detalle de
+  cada ruta.
+- **Vías por criticidad**: los corredores de la matriz de riesgo se colorean por
+  nivel — **Crítico** (rojo, con glow y flujo animado), **Alto** (naranja),
+  **Medio** (amarillo), **Bajo** (verde).
+- **Mini-trucks** orientados por rumbo, moviéndose sobre las vías.
+- **Desvíos por ruta alterna lógica**: ante bloqueo/manifestación el vehículo se
+  reruta por una vía alterna real; se marca el **bloqueo fijo** y se resalta la
+  **ruta alterna**.
+
+## Reporte manual del operador
+
+Botón **"Reporte manual"** en el dashboard: el operador que monitorea el tracking
+selecciona **Ruta → Tramo (con su criticidad) → Tipo de incidente**. El incidente
+se crea en ese tramo y se **conecta con la visualización en vivo** (mapa, cola de
+IPI, alertas) y abre su ficha de gestión.
+
+## Branding GEODIS
+
+Splash de inicio, logo en la barra lateral y marca de agua de fondo. El logo
+oficial vive en `public/geodis-logo.png` y se consume desde
+`src/components/Branding.tsx` (`GeodisLogo`) — reemplaza ese archivo para
+actualizar la marca.
+
 ## Simulación
 
 Al abrir la app se genera automáticamente una operación viva:
