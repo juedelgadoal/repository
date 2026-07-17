@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { BarChart3, FileText, LayoutDashboard, Radar, ShieldAlert } from "lucide-react";
 import { useSimulation } from "@/store/useSimulation";
-import { GeodisWordmark } from "@/components/Branding";
+import { GeodisLogo } from "@/components/Branding";
 
 const NAV = [
   { href: "/control", label: "Centro de Control", icon: LayoutDashboard },
@@ -66,9 +66,8 @@ export function Sidebar() {
       </nav>
 
       <div className="space-y-2 border-t border-line p-3">
-        <div className="flex items-center justify-between rounded-lg border border-line bg-base-700/60 px-3 py-2">
-          <GeodisWordmark className="text-lg text-slate-100" />
-          <span className="text-[8px] uppercase tracking-widest text-slate-500">placeholder</span>
+        <div className="flex items-center justify-center rounded-lg bg-white px-3 py-2.5 shadow-sm">
+          <GeodisLogo className="h-9 w-auto" />
         </div>
         <div className="rounded-lg border border-line bg-base-700/60 p-3 text-[11px] leading-relaxed text-slate-500">
           <p className="mb-1 font-medium text-slate-400">MVP · Datos simulados</p>
