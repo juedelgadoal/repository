@@ -5,8 +5,10 @@ import {
   addComment,
   advance,
   createInitial,
+  manualReport,
   toggleChecklistItem,
 } from "@/lib/simulation";
+import type { IncidentType } from "@/lib/types";
 import { makeRng } from "@/lib/rng";
 import type { SimState } from "@/lib/types";
 
@@ -24,6 +26,7 @@ interface SimStore extends SimState {
   selectVehicle: (id: string | null) => void;
   toggleChecklist: (incidentId: string, itemId: string) => void;
   addComment: (incidentId: string, text: string) => void;
+  manualReport: (routeId: string, tramoIdx: number, type: IncidentType) => void;
   markAlertsRead: () => void;
   reset: () => void;
 }
@@ -57,6 +60,12 @@ export const useSimulation = create<SimStore>((set, get) => ({
 
   addComment: (incidentId, text) =>
     set((s) => addComment(s as SimState, incidentId, text) as Partial<SimStore>),
+
+  manualReport: (routeId, tramoIdx, type) =>
+    set((s) => {
+      const { state, incidentId } = manualReport(s as SimState, routeId, tramoIdx, type, rng);
+      return { ...state, selectedIncidentId: incidentId, selectedVehicleId: null } as Partial<SimStore>;
+    }),
 
   markAlertsRead: () =>
     set((s) => ({ alerts: s.alerts.map((a) => ({ ...a, read: true })) })),

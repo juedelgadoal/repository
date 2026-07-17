@@ -1,4 +1,5 @@
 import {
+  ALT_ROUTES,
   CARRIER_NAMES,
   CITIES,
   CLIENT_LINES,
@@ -9,10 +10,11 @@ import {
   DRIVER_LAST,
   INCIDENT_TYPES,
   MERCHANDISE,
+  TRAMOS,
   cityById,
 } from "./domain";
 import { buildChecklist, checklistCompletion, AGENTS } from "./contingency";
-import { haversine, offsetCoord, pointAlong, polylineLength } from "./geo";
+import { haversine, pointAlong, polylineLength } from "./geo";
 import { computeIpi } from "./ipi";
 import { makeRng, type Rng } from "./rng";
 import type {
@@ -23,10 +25,12 @@ import type {
   Incident,
   IncidentType,
   Kpis,
+  LatLng,
   Order,
   RouteDef,
   Severity,
   SimState,
+  Tramo,
   Vehicle,
 } from "./types";
 
@@ -49,35 +53,54 @@ const CORRIDOR_CITIES: Record<string, [string, string]> = {
   U_med_urban: ["med", "med"],
 };
 
+function buildTramos(key: string, path: LatLng[]): Tramo[] {
+  const defs = TRAMOS[key] ?? [];
+  const segs = Math.max(1, path.length - 1);
+  return defs.map((t, idx) => {
+    const a = path[Math.min(idx, path.length - 1)];
+    const b = path[Math.min(idx + 1, path.length - 1)];
+    return {
+      name: t.name,
+      crit: t.crit,
+      mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as LatLng,
+      frac: (idx + 0.5) / segs,
+    };
+  });
+}
+
 function buildRoutes(): RouteDef[] {
   const routes: RouteDef[] = [];
   let i = 0;
   for (const key of CORRIDOR_KEYS) {
     const c = CORRIDORS[key];
     const [o, d] = CORRIDOR_CITIES[key];
-    // forward
     routes.push({
       id: `R${String(++i).padStart(2, "0")}`,
       name: c.name,
       corridor: c.corridor,
+      corridorKey: key,
       originCityId: o,
       destCityId: d,
       waypoints: c.path,
+      altWaypoints: ALT_ROUTES[key],
+      tramos: buildTramos(key, c.path),
       distanceKm: Math.round(polylineLength(c.path)),
       riskLevel: c.risk,
       riskLabel: c.riskLabel,
       criticalCorridor: c.critical,
     });
-    // reverse (skip urban loops)
     if (o !== d) {
       const rev = [...c.path].reverse();
       routes.push({
         id: `R${String(++i).padStart(2, "0")}`,
         name: c.name.replace("–", "→ inverso –"),
         corridor: c.corridor,
+        corridorKey: key,
         originCityId: d,
         destCityId: o,
         waypoints: rev,
+        altWaypoints: ALT_ROUTES[key] ? [...ALT_ROUTES[key]].reverse() : undefined,
+        tramos: buildTramos(key, rev),
         distanceKm: Math.round(polylineLength(rev)),
         riskLevel: c.risk * 0.95,
         riskLabel: c.riskLabel,
@@ -85,14 +108,9 @@ function buildRoutes(): RouteDef[] {
       });
     }
   }
-  // pad to 25 by cloning corridors with variant windows
   while (routes.length < 25) {
     const src = routes[routes.length % CORRIDOR_KEYS.length];
-    routes.push({
-      ...src,
-      id: `R${String(++i).padStart(2, "0")}`,
-      name: `${src.name} · turno ${routes.length}`,
-    });
+    routes.push({ ...src, id: `R${String(++i).padStart(2, "0")}`, name: `${src.name} · turno ${routes.length}` });
   }
   return routes.slice(0, 25);
 }
@@ -177,6 +195,7 @@ function buildVehicles(rng: Rng, routes: RouteDef[], drivers: Driver[], carriers
       stoppedSince: null,
       gpsLostSince: null,
       deviationKm: 0,
+      altActive: false,
       etaMin,
       slaDeadline: START + (etaMin + rng.range(20, 120)) * MIN,
       incidentId: null,
@@ -322,10 +341,22 @@ function spawnIncident(state: SimState, v: Vehicle, type: IncidentType, rng: Rng
     contingencyPlan: vetoSeguridad ? "VETO DE SEGURIDAD · suspensión inmediata del corredor · H3 aéreo carga crítica" : meta.plan,
     escalated: false,
     vetoSeguridad,
+    reroute: false,
+    blockCoord: null,
+    manual: false,
   };
 
-  v.status = type === "retraso" || type === "desvio_ruta" ? "en_ruta" : "detenido";
-  if (finalSev === "critica" || finalSev === "alta") v.status = "en_incidente";
+  // Blockage-type incidents trigger a reroute onto the alternate road (truck keeps moving).
+  const canReroute = (type === "bloqueo_vial" || type === "manifestacion" || type === "desvio_ruta") && !!route.altWaypoints;
+  if (canReroute) {
+    inc.reroute = true;
+    inc.blockCoord = [...v.coord] as LatLng;
+    v.altActive = true;
+    v.status = "en_ruta";
+  } else {
+    v.status = type === "retraso" ? "en_ruta" : "detenido";
+    if (finalSev === "critica" || finalSev === "alta") v.status = "en_incidente";
+  }
   v.incidentId = inc.id;
   state.incidents.push(inc);
   return inc;
@@ -357,6 +388,9 @@ export function advance(prev: SimState, realDtMs: number, rng: Rng): SimState {
     const inc = v.incidentId ? state.incidents.find((i) => i.id === v.incidentId) : null;
     const blocked = inc && inc.status !== "resuelto" && v.status !== "en_ruta";
 
+    // follow the alternate road while rerouting around a blockage
+    const path = v.altActive && route.altWaypoints ? route.altWaypoints : route.waypoints;
+
     if (!blocked) {
       const km = (v.speedKmh * (dtSim / 3_600_000));
       v.progress += km / route.distanceKm;
@@ -365,7 +399,7 @@ export function advance(prev: SimState, realDtMs: number, rng: Rng): SimState {
         // arrived -> recycle onto a fresh route to keep the operation live
         recycleVehicle(state, v, rng);
       } else {
-        const p = pointAlong(route.waypoints, v.progress);
+        const p = pointAlong(path, v.progress);
         v.coord = p.coord;
         v.heading = p.heading;
         const remainingKm = route.distanceKm * (1 - v.progress);
@@ -374,12 +408,6 @@ export function advance(prev: SimState, realDtMs: number, rng: Rng): SimState {
       }
     } else if (v.stoppedSince == null) {
       v.stoppedSince = now;
-    }
-
-    // deviation drift while in a desvio incident
-    if (inc && inc.type === "desvio_ruta" && inc.status !== "resuelto") {
-      v.deviationKm = Math.min(6, v.deviationKm + dtMin * 0.15);
-      v.coord = offsetCoord(v.coord, v.deviationKm, v.heading + 90);
     }
   }
 
@@ -604,6 +632,7 @@ function resolveIncident(state: SimState, inc: Incident, now: number, rng: Rng) 
     v.incidentId = null;
     v.status = "en_ruta";
     v.deviationKm = 0;
+    v.altActive = false;
   }
   pushAlert(state, {
     t: now,
@@ -629,6 +658,7 @@ function recycleVehicle(state: SimState, v: Vehicle, rng: Rng) {
   v.slaDeadline = state.now + (v.etaMin + rng.range(20, 120)) * MIN;
   v.departedAt = state.now;
   v.deviationKm = 0;
+  v.altActive = false;
 }
 
 // --------------------------------------------------------------------------
@@ -739,4 +769,68 @@ export function addComment(state: SimState, incidentId: string, text: string): S
       : i
   );
   return { ...state, incidents };
+}
+
+// Manual operator report: creates an incident on a chosen corridor/tramo and
+// connects it to the live map by placing a vehicle at that segment.
+export function manualReport(
+  prev: SimState,
+  routeId: string,
+  tramoIdx: number,
+  type: IncidentType,
+  rng: Rng
+): { state: SimState; incidentId: string | null } {
+  const state: SimState = {
+    ...prev,
+    vehicles: prev.vehicles.map((v) => ({ ...v })),
+    incidents: prev.incidents.map((i) => ({ ...i })),
+    alerts: [...prev.alerts],
+  };
+  const route = state.routes.find((r) => r.id === routeId);
+  if (!route) return { state: prev, incidentId: null };
+  const tramo = route.tramos[tramoIdx];
+  if (!tramo) return { state: prev, incidentId: null };
+
+  // prefer a free vehicle already on this route; else the nearest free one
+  let v = state.vehicles.find((x) => x.routeId === routeId && !x.incidentId);
+  if (!v) {
+    const free = state.vehicles.filter((x) => !x.incidentId);
+    v = [...free].sort(
+      (a, b) => haversine(a.coord, tramo.mid) - haversine(b.coord, tramo.mid)
+    )[0];
+  }
+  if (!v) v = state.vehicles[0];
+  if (v.incidentId) {
+    const old = state.incidents.find((i) => i.id === v!.incidentId);
+    if (old) old.status = "resuelto";
+    v.incidentId = null;
+  }
+  // place the vehicle on the reported tramo
+  v.routeId = routeId;
+  v.progress = tramo.frac;
+  const p = pointAlong(route.waypoints, tramo.frac);
+  v.coord = p.coord;
+  v.heading = p.heading;
+  v.altActive = false;
+
+  const inc = spawnIncident(state, v, type, rng, state.now);
+  inc.manual = true;
+  inc.timeline = [
+    ...inc.timeline,
+    { id: nid("t"), t: state.now, label: `Reporte manual del operador · tramo ${tramo.name} (${tramo.crit})`, kind: "action" },
+  ];
+  inc.comms = [
+    ...inc.comms,
+    { id: nid("cm"), kind: "comentario", from: "Operador de monitoreo", content: `Reporte manual desde tracking: ${INCIDENT_TYPES[type].label} en ${tramo.name}.`, t: state.now },
+  ];
+  pushAlert(state, {
+    t: state.now,
+    level: inc.severity === "critica" || inc.severity === "alta" ? "crit" : "warn",
+    title: `Reporte manual · ${INCIDENT_TYPES[type].label}`,
+    detail: `${tramo.name} (${tramo.crit}) · ${v.plate}`,
+    incidentId: inc.id,
+    vehicleId: v.id,
+  });
+  recomputeAll(state, rng);
+  return { state, incidentId: inc.id };
 }

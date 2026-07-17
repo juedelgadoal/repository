@@ -155,6 +155,84 @@ export const CORRIDORS: Record<
 
 export const CORRIDOR_KEYS = Object.keys(CORRIDORS);
 
+// Criticality band for a road segment (from risk 0-25) — drives map styling.
+export function critBand(risk: number): { label: string; color: string; weight: number; glow: boolean } {
+  if (risk >= 15) return { label: "Crítico", color: "#ef4444", weight: 6, glow: true };
+  if (risk >= 12) return { label: "Alto", color: "#f97316", weight: 4.5, glow: true };
+  if (risk >= 9) return { label: "Medio", color: "#eab308", weight: 3.2, glow: false };
+  return { label: "Bajo", color: "#22c55e", weight: 2.4, glow: false };
+}
+
+// Alternate (logical detour) routes per corridor — used when a blockage forces a reroute.
+export const ALT_ROUTES: Record<string, LatLng[]> = {
+  A_bun_bog: [[3.8801, -77.0313], [3.7203, -76.7223], [3.4516, -76.532], [4.06, -75.99], [4.53, -75.68], [4.437, -75.2322], [4.711, -74.0721]],
+  B_ctg_bog: [[10.391, -75.4794], [9.3047, -75.3978], [8.2, -75.1], [6.99, -75.3], [6.2442, -75.5812], [5.1974, -74.7399], [4.711, -74.0721]],
+  C_cal_ipi: [[3.4516, -76.532], [3.0089, -76.4848], [2.4448, -76.6147], [1.8, -76.9], [1.2136, -77.2811], [0.8303, -77.645]],
+  A_cal_bog: [[3.4516, -76.532], [4.06, -75.99], [4.53, -75.68], [4.437, -75.2322], [4.711, -74.0721]],
+  T_bog_vil: [[4.711, -74.0721], [4.34, -73.92], [4.05, -73.8], [4.142, -73.6266]],
+  T_bog_med: [[4.711, -74.0721], [5.1974, -74.7399], [6.02, -74.9], [6.2802, -75.4407], [6.2442, -75.5812]],
+  B_baq_bog: [[10.9685, -74.7813], [9.3047, -75.3978], [7.94, -74.8], [6.55, -73.13], [5.5353, -73.3677], [4.711, -74.0721]],
+};
+
+export type TramoCrit = "Crítico" | "Alto" | "Medio" | "Bajo";
+// Tramos (segments) per corridor with criticality — feed the operator's manual report.
+export const TRAMOS: Record<string, { name: string; crit: TramoCrit }[]> = {
+  A_bun_bog: [
+    { name: "Buenaventura – Loboguerrero", crit: "Alto" },
+    { name: "Loboguerrero – Buga (saqueo/atraco)", crit: "Crítico" },
+    { name: "Buga – Ibagué (congestión)", crit: "Alto" },
+    { name: "Ibagué – Bogotá (La Línea)", crit: "Medio" },
+  ],
+  B_ctg_bog: [
+    { name: "Cartagena – Sincelejo", crit: "Medio" },
+    { name: "Sincelejo – Caucasia", crit: "Alto" },
+    { name: "Caucasia – Pto. Berrío (piratería)", crit: "Crítico" },
+    { name: "Pto. Berrío – Honda", crit: "Alto" },
+    { name: "Honda – Bogotá", crit: "Medio" },
+  ],
+  C_cal_ipi: [
+    { name: "Cali – Santander de Quilichao (robo armado)", crit: "Crítico" },
+    { name: "Quilichao – Popayán", crit: "Alto" },
+    { name: "Popayán – Pasto (VETO Cauca-Nariño)", crit: "Crítico" },
+    { name: "Pasto – Ipiales/Rumichaca", crit: "Alto" },
+  ],
+  T_bog_vil: [
+    { name: "Bogotá – Chipaque", crit: "Medio" },
+    { name: "Chipaque – Cáqueza (derrumbes)", crit: "Alto" },
+    { name: "Cáqueza – Villavicencio", crit: "Medio" },
+  ],
+  T_bog_med: [
+    { name: "Bogotá – Guaduas", crit: "Bajo" },
+    { name: "Guaduas – Honda", crit: "Medio" },
+    { name: "Honda – Guarne (accidentalidad)", crit: "Alto" },
+    { name: "Guarne – Medellín", crit: "Medio" },
+  ],
+  A_cal_bog: [
+    { name: "Cali – Buga", crit: "Alto" },
+    { name: "Buga – Ibagué (congestión)", crit: "Alto" },
+    { name: "Ibagué – Cajamarca (La Línea)", crit: "Medio" },
+    { name: "Cajamarca – Bogotá", crit: "Medio" },
+  ],
+  B_baq_bog: [
+    { name: "Barranquilla – Sincelejo", crit: "Medio" },
+    { name: "Sincelejo – Bucaramanga", crit: "Medio" },
+    { name: "Bucaramanga – Tunja", crit: "Alto" },
+    { name: "Tunja – Bogotá", crit: "Bajo" },
+  ],
+  U_bog_urban: [
+    { name: "Bogotá centro – occidente", crit: "Medio" },
+    { name: "Occidente – sur", crit: "Bajo" },
+    { name: "Sur – norte", crit: "Medio" },
+    { name: "Norte – centro", crit: "Bajo" },
+  ],
+  U_med_urban: [
+    { name: "Medellín centro – sur", crit: "Bajo" },
+    { name: "Sur – occidente", crit: "Medio" },
+    { name: "Occidente – norte", crit: "Bajo" },
+    { name: "Norte – centro", crit: "Medio" },
+  ],
+};
+
 // Client lines with GUT-based priority (Medicina 75, Tecnología 60, Retail 27,
 // Consumo 12, Automotriz 8) normalized to 0-100.
 export const CLIENT_LINES: { line: string; gut: number; critical: boolean }[] = [

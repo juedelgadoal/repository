@@ -5,6 +5,7 @@ import { KpiBar } from "@/components/control/KpiBar";
 import { AlertsPanel } from "@/components/control/AlertsPanel";
 import { IncidentsTable } from "@/components/control/IncidentsTable";
 import { MapLegend } from "@/components/control/MapLegend";
+import { ManualReport } from "@/components/control/ManualReport";
 import { SectionTitle } from "@/components/ui/primitives";
 import { useSimulation } from "@/store/useSimulation";
 import { Loader2, MapPin } from "lucide-react";
@@ -43,7 +44,10 @@ export default function ControlPage() {
       <div className="panel flex max-h-[36vh] min-h-[220px] flex-col">
         <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
           <SectionTitle>Cola de incidentes · priorizada por IPI</SectionTitle>
-          <span className="text-[11px] text-slate-500">{openIncidents} abiertos</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-slate-500">{openIncidents} abiertos</span>
+            <ManualReport />
+          </div>
         </div>
         <IncidentsTable />
       </div>

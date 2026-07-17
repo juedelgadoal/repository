@@ -50,13 +50,23 @@ export interface Carrier {
   slaCompliance: number; // 0-1 baseline
 }
 
+export interface Tramo {
+  name: string;
+  crit: string; // Crítico | Alto | Medio | Bajo
+  mid: LatLng;
+  frac: number; // 0..1 position along the corridor
+}
+
 export interface RouteDef {
   id: string;
   name: string;
   corridor: "A" | "B" | "C" | "T" | "U"; // Buenaventura, Cartagena, Rumichaca, Transversal, Urbano
+  corridorKey: string; // key into CORRIDORS / ALT_ROUTES / TRAMOS
   originCityId: string;
   destCityId: string;
   waypoints: LatLng[];
+  altWaypoints?: LatLng[]; // logical detour for reroutes
+  tramos: Tramo[];
   distanceKm: number;
   riskLevel: number; // 1-25 (from risk matrix severity)
   riskLabel: string;
@@ -93,6 +103,7 @@ export interface Vehicle {
   stoppedSince: number | null; // epoch ms
   gpsLostSince: number | null;
   deviationKm: number;
+  altActive: boolean; // moving along the alternate (reroute) path
   etaMin: number;
   slaDeadline: number; // epoch ms
   incidentId: string | null;
@@ -150,6 +161,9 @@ export interface Incident {
   contingencyPlan: string; // recommended plan (H1/H2/H3/VETO)
   escalated: boolean;
   vetoSeguridad: boolean;
+  reroute: boolean; // blockage forced an alternate route
+  blockCoord: LatLng | null; // fixed blockage point (when rerouting)
+  manual: boolean; // reported manually by an operator
 }
 
 export interface IpiBreakdown {
