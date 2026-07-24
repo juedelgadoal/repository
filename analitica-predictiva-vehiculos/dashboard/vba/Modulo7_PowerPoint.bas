@@ -63,9 +63,11 @@ Private Function LeerKPIs() As Object
     Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
     On Error Resume Next
     Dim wsT As Worksheet: Set wsT = ThisWorkbook.Worksheets(Modulo1_Principal.HOJA_TABLERO)
+    Dim pron7 As Double: pron7 = Modulo1_Principal.LeerParametroNum("Pron_7d", 0)
+    Dim colchon As Double: colchon = Modulo1_Principal.LeerParametroNum("Colchon", 0.095)
     d("demanda") = Format(LeerNum("Tablero", "A5"), "#,##0")
-    d("pron7") = Format(Modulo1_Principal.LeerParametroNum("Pron_7d", 0), "#,##0")
-    d("reserva") = Format(LeerNum("Pronostico", "F0"), "#,##0")
+    d("pron7") = Format(pron7, "#,##0")
+    d("reserva") = Format(pron7 * (1 + colchon), "#,##0")   ' reserva = pronóstico 7d + colchón
     d("wape") = "7.4"
     d("terceros") = "79"
     d("vacio") = "21"

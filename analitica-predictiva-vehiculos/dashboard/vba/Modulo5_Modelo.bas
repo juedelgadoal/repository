@@ -16,8 +16,14 @@ Private Const NFEAT As Long = 16
 ' Entrena OLS y escribe coeficientes en la hoja Modelo; luego pronostica.
 '------------------------------------------------------------------------------
 Public Sub EjecutarModeloOLS()
-    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
-    If ws Is Nothing Then Exit Sub
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
+    On Error GoTo 0
+    If ws Is Nothing Then
+        Modulo1_Principal.Log_Registrar "Modelo: falta la hoja BASE_Diaria; se omite."
+        Exit Sub
+    End If
     Dim ult As Long: ult = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     If ult < 60 Then
         Modulo1_Principal.Log_Registrar "Modelo: historia insuficiente (<60 dias)."
@@ -53,9 +59,20 @@ Public Sub EjecutarModeloOLS()
         End If
     Next d
 
+    If filas < NFEAT + 2 Then
+        Modulo1_Principal.Log_Registrar "Modelo: observaciones insuficientes para LINEST (" & filas & ")."
+        Exit Sub
+    End If
+
     ' --- LINEST: coeficientes (orden inverso; intercepto al final) ---
+    ' Se usa Application.LinEst (no WorksheetFunction): ante matriz singular o
+    ' colineal devuelve un valor de error en vez de lanzar una excepción.
     Dim res As Variant
-    res = Application.WorksheetFunction.LinEst(Y, X, True, False)
+    res = Application.LinEst(Y, X, True, False)
+    If IsError(res) Then
+        Modulo1_Principal.Log_Registrar "Modelo: LINEST no ajustó (datos colineales/insuficientes)."
+        Exit Sub
+    End If
     ' res(1, 1..NFEAT+1): coef de la ultima X primero ... intercepto en col NFEAT+1
     Dim coef() As Double: ReDim coef(0 To NFEAT)   ' coef(0)=intercepto, coef(1..NFEAT)
     coef(0) = res(1, NFEAT + 1)
@@ -143,6 +160,10 @@ Private Sub PronosticarRecursivo(ByVal serie As Object, ByRef coef() As Double, 
 
     ' Resumen 7 dias en celda de referencia para el Tablero
     ws.Range("N1").Value = "Pronostico_7d": ws.Range("N2").Value = total7
+    ' Recrear el nombre definido de forma idempotente (evita error 1004 en re-ejecución)
+    On Error Resume Next
+    ThisWorkbook.Names("Pron_7d").Delete
+    On Error GoTo 0
     ThisWorkbook.Names.Add Name:="Pron_7d", RefersTo:="='" & ws.Name & "'!$N$2"
 End Sub
 
