@@ -322,21 +322,29 @@ Public Sub ImportarNuevosArchivos()
     wsStage.Cells.Clear
     EscribirEncabezados wsStage
 
+    ' 1) Enumerar PRIMERO todos los archivos y luego procesarlos.
+    '    (Dir no admite llamadas anidadas: ApilarArchivo/MoverAProcesados usan
+    '    Dir/Name internamente, lo que reiniciaba la enumeracion y provocaba el
+    '    error 5 "Argumento o llamada a procedimiento no valida" en Dir().)
+    Dim archivos As Collection: Set archivos = New Collection
     archivo = Dir(ruta & "*.xls*")
     Do While archivo <> ""
-        ApilarArchivo ruta & archivo, wsStage
-        MoverAProcesados ruta, archivo
-        nImport = nImport + 1
+        If Left$(archivo, 2) <> "~$" Then archivos.Add archivo   ' omite temporales de Office
         archivo = Dir()
     Loop
-    ' CSV (Excel los abre igual que un libro)
     archivo = Dir(ruta & "*.csv")
     Do While archivo <> ""
-        ApilarArchivo ruta & archivo, wsStage
-        MoverAProcesados ruta, archivo
-        nImport = nImport + 1
+        archivos.Add archivo
         archivo = Dir()
     Loop
+
+    ' 2) Procesar la lista ya cerrada
+    Dim it As Variant
+    For Each it In archivos
+        ApilarArchivo ruta & it, wsStage
+        MoverAProcesados ruta, CStr(it)
+        nImport = nImport + 1
+    Next it
 
     Log_Registrar "Archivos importados: " & nImport
 End Sub
@@ -426,8 +434,8 @@ End Function
 Private Sub MoverAProcesados(ByVal ruta As String, ByVal archivo As String)
     Dim destino As String
     destino = ruta & "Procesados" & Application.PathSeparator
-    If Dir(destino, vbDirectory) = "" Then MkDir destino
     On Error Resume Next
+    If Dir(destino, vbDirectory) = "" Then MkDir Left$(destino, Len(destino) - 1)
     Name ruta & archivo As destino & Format(Now, "yyyymmdd_hhmmss_") & archivo
 End Sub
 
