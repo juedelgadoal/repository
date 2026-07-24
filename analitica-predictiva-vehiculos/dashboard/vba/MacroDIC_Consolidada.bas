@@ -117,11 +117,10 @@ Public Sub EjecutarTodo()
         Log_Registrar "Sin datos suficientes (" & FilasDatos() & " filas). Se detiene con aviso."
         MsgBox "No hay datos suficientes para generar el pronostico." & vbCrLf & vbCrLf & _
                "Que hacer:" & vbCrLf & _
-               "  1) Abra la carpeta 'Entrada' de su ESCRITORIO" & vbCrLf & _
-               "     (la macro la crea automaticamente si no existe)." & vbCrLf & _
-               "  2) Coloque alli su archivo de viajes (use la plantilla), o" & vbCrLf & _
-               "     pegue el historico directamente en la hoja DATA." & vbCrLf & _
-               "  3) Vuelva a pulsar el boton ACTUALIZAR TODO." & vbCrLf & vbCrLf & _
+               "  1) Pulse de nuevo ACTUALIZAR TODO y, cuando se abra la" & vbCrLf & _
+               "     ventana de seleccion, elija su archivo de viajes" & vbCrLf & _
+               "     (Plantilla_Carga_DATA.xlsx con los datos)." & vbCrLf & _
+               "  2) O pegue el historico directamente en la hoja DATA." & vbCrLf & vbCrLf & _
                "Se requieren al menos 60 dias de historia.", vbExclamation, "DIC - Planeacion"
         Exit Sub
     End If
@@ -324,52 +323,68 @@ Public Function RutaEntrada() As String
 End Function
 
 Public Sub ImportarNuevosArchivos()
-    Dim ruta As String, archivo As String, nImport As Long
-    ruta = RutaEntrada()
-
-    If Len(ruta) = 0 Then
-        Log_Registrar "No se pudo resolver el Escritorio ni una carpeta local del libro."
-        MsgBox "No fue posible determinar donde crear la carpeta 'Entrada'." & vbCrLf & vbCrLf & _
-               "Cree manualmente una carpeta llamada Entrada en su Escritorio y " & _
-               "coloque alli su archivo de viajes; o pegue los datos en la hoja DATA.", _
-               vbExclamation, "DIC - Planeacion"
-        Exit Sub
-    End If
-
-    ' Si la carpeta no existe -> se crea, SE VERIFICA y se ABRE en el Explorador
-    If Dir(ruta, vbDirectory) = "" Then
-        On Error Resume Next
-        MkDir Left$(ruta, Len(ruta) - 1)
-        On Error GoTo 0
-        If Dir(ruta, vbDirectory) <> "" Then
-            Log_Registrar "Carpeta Entrada creada: " & ruta
-            On Error Resume Next
-            Shell "explorer.exe """ & Left$(ruta, Len(ruta) - 1) & """", vbNormalFocus
-            On Error GoTo 0
-            MsgBox "La carpeta 'Entrada' fue creada y ABIERTA en el Explorador:" & vbCrLf & _
-                   ruta & vbCrLf & vbCrLf & _
-                   "Coloque alli su archivo de viajes (Plantilla_Carga_DATA.xlsx) " & _
-                   "y vuelva a pulsar ACTUALIZAR TODO.", _
-                   vbInformation, "DIC - Planeacion"
-        Else
-            Log_Registrar "FALLO al crear la carpeta: " & ruta
-            MsgBox "No se pudo crear la carpeta:" & vbCrLf & ruta & vbCrLf & vbCrLf & _
-                   "Creela manualmente (o pegue los datos en la hoja DATA) y " & _
-                   "vuelva a ejecutar.", vbExclamation, "DIC - Planeacion"
-        End If
-        Exit Sub
-    End If
-
     Dim wsStage As Worksheet
     Set wsStage = ObtenerHoja("_Staging")
     wsStage.Cells.Clear
     EscribirEncabezados wsStage
 
-    ' 1) Enumerar PRIMERO todos los archivos y luego procesarlos.
-    '    (Dir no admite llamadas anidadas: ApilarArchivo/MoverAProcesados usan
-    '    Dir/Name internamente, lo que reiniciaba la enumeracion y provocaba el
-    '    error 5 "Argumento o llamada a procedimiento no valida" en Dir().)
+    Dim nImport As Long
+
+    ' A) Carpeta 'Entrada' (opcional, para flujo automatizado): si existe en el
+    '    Escritorio o junto al libro, se importa automaticamente lo que haya alli.
+    Dim ruta As String: ruta = RutaEntrada()
+    If Len(ruta) > 0 Then
+        If Dir(ruta, vbDirectory) <> "" Then
+            nImport = ImportarDeCarpeta(ruta, wsStage)
+        Else
+            ' Intento silencioso de crearla para proximas corridas (sin bloquear)
+            On Error Resume Next
+            MkDir Left$(ruta, Len(ruta) - 1)
+            On Error GoTo 0
+            If Dir(ruta, vbDirectory) <> "" Then
+                Log_Registrar "Carpeta Entrada creada: " & ruta
+            End If
+        End If
+    End If
+
+    ' B) SELECTOR DE ARCHIVOS: si no llego nada por carpeta, el usuario elige su
+    '    archivo directamente en una ventana estandar de Windows. No depende de
+    '    rutas, del Escritorio ni de OneDrive.
+    If nImport = 0 Then
+        Dim abrir As Boolean
+        If FilasDatos() < 60 Then
+            abrir = True    ' sin datos no hay nada que calcular: pedir archivo ya
+        Else
+            abrir = (MsgBox("No se encontraron archivos nuevos en la carpeta Entrada." & vbCrLf & _
+                     "Desea seleccionar un archivo de datos para cargar?", _
+                     vbYesNo + vbQuestion, "DIC - Planeacion") = vbYes)
+        End If
+        If abrir Then
+            Dim sel As Variant
+            sel = Application.GetOpenFilename( _
+                  "Datos de viajes (*.xls*;*.csv),*.xls*;*.csv", , _
+                  "Seleccione el archivo de datos de viajes (puede elegir varios)", , True)
+            If IsArray(sel) Then
+                Dim k As Long
+                For k = LBound(sel) To UBound(sel)
+                    ApilarArchivo CStr(sel(k)), wsStage
+                    nImport = nImport + 1
+                Next k
+            Else
+                Log_Registrar "Seleccion de archivos cancelada por el usuario."
+            End If
+        End If
+    End If
+
+    Log_Registrar "Archivos importados: " & nImport
+End Sub
+
+' Importa todos los archivos de una carpeta. Se enumera PRIMERO y se procesa
+' DESPUES: Dir no admite llamadas anidadas (ApilarArchivo/MoverAProcesados usan
+' Dir/Name internamente y reiniciaban la enumeracion -> error 5).
+Private Function ImportarDeCarpeta(ByVal ruta As String, ByVal wsStage As Worksheet) As Long
     Dim archivos As Collection: Set archivos = New Collection
+    Dim archivo As String, n As Long
     archivo = Dir(ruta & "*.xls*")
     Do While archivo <> ""
         If Left$(archivo, 2) <> "~$" Then archivos.Add archivo   ' omite temporales de Office
@@ -380,17 +395,14 @@ Public Sub ImportarNuevosArchivos()
         archivos.Add archivo
         archivo = Dir()
     Loop
-
-    ' 2) Procesar la lista ya cerrada
     Dim it As Variant
     For Each it In archivos
         ApilarArchivo ruta & it, wsStage
         MoverAProcesados ruta, CStr(it)
-        nImport = nImport + 1
+        n = n + 1
     Next it
-
-    Log_Registrar "Archivos importados: " & nImport
-End Sub
+    ImportarDeCarpeta = n
+End Function
 
 Private Sub EscribirEncabezados(ByVal ws As Worksheet)
     Dim h As Variant, j As Long
@@ -406,9 +418,12 @@ End Sub
 ' dejan vacías y las sobrantes se ignoran.
 Private Sub ApilarArchivo(ByVal fullpath As String, ByVal wsStage As Worksheet)
     Dim wb As Workbook, wsO As Worksheet
+    ' Nunca procesar este mismo libro (cerrarlo abortaria la ejecucion)
+    If StrComp(fullpath, ThisWorkbook.FullName, vbTextCompare) = 0 Then Exit Sub
     On Error Resume Next
     Set wb = Workbooks.Open(fullpath, ReadOnly:=True, UpdateLinks:=0)
     If wb Is Nothing Then Exit Sub
+    If wb Is ThisWorkbook Then Exit Sub
     Set wsO = DetectarHojaDatos(wb)
     If Not wsO Is Nothing Then CopiarMapeadoPorEncabezado wsO, wsStage
     wb.Close SaveChanges:=False

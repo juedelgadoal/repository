@@ -52,11 +52,10 @@ Public Sub EjecutarTodo()
         Log_Registrar "Sin datos suficientes (" & FilasDatos() & " filas). Se detiene con aviso."
         MsgBox "No hay datos suficientes para generar el pronostico." & vbCrLf & vbCrLf & _
                "Que hacer:" & vbCrLf & _
-               "  1) Abra la carpeta 'Entrada' de su ESCRITORIO" & vbCrLf & _
-               "     (la macro la crea automaticamente si no existe)." & vbCrLf & _
-               "  2) Coloque alli su archivo de viajes (use la plantilla), o" & vbCrLf & _
-               "     pegue el historico directamente en la hoja DATA." & vbCrLf & _
-               "  3) Vuelva a pulsar el boton ACTUALIZAR TODO." & vbCrLf & vbCrLf & _
+               "  1) Pulse de nuevo ACTUALIZAR TODO y, cuando se abra la" & vbCrLf & _
+               "     ventana de seleccion, elija su archivo de viajes" & vbCrLf & _
+               "     (Plantilla_Carga_DATA.xlsx con los datos)." & vbCrLf & _
+               "  2) O pegue el historico directamente en la hoja DATA." & vbCrLf & vbCrLf & _
                "Se requieren al menos 60 dias de historia.", vbExclamation, "DIC - Planeacion"
         Exit Sub
     End If
