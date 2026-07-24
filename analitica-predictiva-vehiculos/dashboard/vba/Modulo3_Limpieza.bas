@@ -14,15 +14,23 @@ Public Sub LimpiarDatos()
     Dim ult As Long: ult = Modulo1_Principal.UltimaFila(ws, 1)
     If ult < 2 Then Exit Sub
 
-    Dim col As Object: Set col = MapaColumnas(ws)
+    Dim col As Object: Set col = Modulo1_Principal.MapaColNorm(ws)
     Dim datos As Variant, i As Long, nElim As Long, nAtip As Long
     datos = ws.Range(ws.Cells(2, 1), ws.Cells(ult, ws.UsedRange.Columns.Count)).Value
 
     Dim cFecha As Long, cPlaca As Long, cOrig As Long, cDest As Long, cPeso As Long
     Dim cMes As Long, cAnio As Long, cMesAnio As Long
-    cFecha = col("Fecha"): cPlaca = col("PLACA")
-    cOrig = col("Ciudad Origen"): cDest = col("Ciudad Destino"): cPeso = col("PESO CARGADO (ton)")
-    cMes = col("MES"): cAnio = col("ANIO"): cMesAnio = col("Mes - Anio")
+    With Modulo1_Principal
+        cFecha = col(.NormHdr("Fecha")): cPlaca = col(.NormHdr("PLACA"))
+        cOrig = col(.NormHdr("Ciudad Origen")): cDest = col(.NormHdr("Ciudad Destino"))
+        cPeso = col(.NormHdr("PESO CARGADO (ton)"))
+        cMes = col(.NormHdr("MES")): cAnio = col(.NormHdr("ANIO")): cMesAnio = col(.NormHdr("Mes - Anio"))
+    End With
+    ' Si falta alguna columna clave, aborta con mensaje claro
+    If cFecha = 0 Or cPlaca = 0 Or cPeso = 0 Then
+        Modulo1_Principal.Log_Registrar "Limpieza abortada: faltan columnas clave (Fecha/PLACA/PESO)."
+        Exit Sub
+    End If
 
     Dim salida() As Variant, k As Long
     ReDim salida(1 To UBound(datos, 1), 1 To UBound(datos, 2))
@@ -57,19 +65,6 @@ Public Sub LimpiarDatos()
 
     Modulo1_Principal.Log_Registrar "Limpieza: eliminadas " & nElim & " filas invalidas; " & k & " validas."
 End Sub
-
-' Devuelve un Dictionary encabezado -> indice de columna
-Private Function MapaColumnas(ByVal ws As Worksheet) As Object
-    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
-    Dim j As Long, ultCol As Long
-    ultCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    For j = 1 To ultCol
-        d(CStr(ws.Cells(1, j).Value)) = j
-    Next j
-    ' Tolerancia a variantes de acentos
-    If Not d.Exists("ANIO") And d.Exists("A" & Chr(209) & "O") Then d("ANIO") = d("A" & Chr(209) & "O")
-    Set MapaColumnas = d
-End Function
 
 Private Function RecortarMatriz(ByRef m As Variant, ByVal nf As Long, ByVal nc As Long) As Variant
     Dim r() As Variant, i As Long, j As Long

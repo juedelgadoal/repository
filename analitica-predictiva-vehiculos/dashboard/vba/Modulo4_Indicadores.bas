@@ -16,9 +16,13 @@ Public Sub RecalcularIndicadores()
     End If
 
     ' --- Agregar viajes y toneladas por fecha usando un Dictionary ---
-    Dim col As Object: Set col = MapaCol(wsData)
-    Dim cFecha As Long: cFecha = col("Fecha")
-    Dim cPeso As Long: cPeso = col("PESO CARGADO (ton)")
+    Dim col As Object: Set col = Modulo1_Principal.MapaColNorm(wsData)
+    Dim cFecha As Long: cFecha = col(Modulo1_Principal.NormHdr("Fecha"))
+    Dim cPeso As Long: cPeso = col(Modulo1_Principal.NormHdr("PESO CARGADO (ton)"))
+    If cFecha = 0 Or cPeso = 0 Then
+        Modulo1_Principal.Log_Registrar "BASE_Diaria abortada: faltan columnas Fecha/PESO."
+        Exit Sub
+    End If
     Dim datos As Variant
     datos = wsData.Range(wsData.Cells(2, 1), wsData.Cells(ult, wsData.UsedRange.Columns.Count)).Value
 
@@ -97,10 +101,3 @@ Private Function MediaMovil(ByVal ws As Worksheet, ByVal fila As Long, ByVal W A
     MediaMovil = Application.WorksheetFunction.Average(ws.Range(ws.Cells(ini, 2), ws.Cells(fila - 7, 2)))
 End Function
 
-Private Function MapaCol(ByVal ws As Worksheet) As Object
-    Dim dd As Object: Set dd = CreateObject("Scripting.Dictionary")
-    Dim j As Long, ultCol As Long
-    ultCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    For j = 1 To ultCol: dd(CStr(ws.Cells(1, j).Value)) = j: Next j
-    Set MapaCol = dd
-End Function

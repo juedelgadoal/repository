@@ -137,3 +137,38 @@ End Function
 Public Function UltimaFila(ByVal ws As Worksheet, Optional ByVal col As Long = 1) As Long
     UltimaFila = ws.Cells(ws.Rows.Count, col).End(xlUp).Row
 End Function
+
+'------------------------------------------------------------------------------
+' Normalización de encabezados: MAYÚSCULAS, sin tildes, sin dobles espacios.
+' Permite alimentar archivos con nombres de columna en cualquier orden y con o
+' sin acentos (p. ej. "Tipología de camión" = "TIPOLOGIA DE CAMION").
+'------------------------------------------------------------------------------
+' Los literales de lógica en este proyecto son ASCII (para evitar mojibake según
+' la página de códigos al importar el .bas). Los VALORES de celda sí llegan como
+' Unicode correcto, por lo que aquí se despojan de tildes en tiempo de ejecución.
+Public Function NormHdr(ByVal s As String) As String
+    Dim t As String: t = Trim$(CStr(s))
+    t = Replace(t, ChrW(225), "a"): t = Replace(t, ChrW(193), "A")   ' á Á
+    t = Replace(t, ChrW(233), "e"): t = Replace(t, ChrW(201), "E")   ' é É
+    t = Replace(t, ChrW(237), "i"): t = Replace(t, ChrW(205), "I")   ' í Í
+    t = Replace(t, ChrW(243), "o"): t = Replace(t, ChrW(211), "O")   ' ó Ó
+    t = Replace(t, ChrW(250), "u"): t = Replace(t, ChrW(218), "U")   ' ú Ú
+    t = Replace(t, ChrW(252), "u"): t = Replace(t, ChrW(220), "U")   ' ü Ü
+    t = Replace(t, ChrW(241), "n"): t = Replace(t, ChrW(209), "N")   ' ñ Ñ
+    t = UCase$(t)
+    t = Replace(t, "ANIO", "ANO")   ' unifica AÑO / ANIO / ANO -> ANO
+    Do While InStr(t, "  ") > 0: t = Replace(t, "  ", " "): Loop
+    NormHdr = t
+End Function
+
+' Diccionario: encabezado NORMALIZADO -> índice de columna (fila de encabezado dada)
+Public Function MapaColNorm(ByVal ws As Worksheet, Optional ByVal filaHdr As Long = 1) As Object
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    Dim j As Long, ultCol As Long
+    ultCol = ws.Cells(filaHdr, ws.Columns.Count).End(xlToLeft).Column
+    For j = 1 To ultCol
+        Dim k As String: k = NormHdr(CStr(ws.Cells(filaHdr, j).Value))
+        If Len(k) > 0 And Not d.Exists(k) Then d(k) = j
+    Next j
+    Set MapaColNorm = d
+End Function

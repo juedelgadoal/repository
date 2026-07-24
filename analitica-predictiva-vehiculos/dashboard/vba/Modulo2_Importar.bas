@@ -38,10 +38,10 @@ Public Sub ImportarNuevosArchivos()
         nImport = nImport + 1
         archivo = Dir()
     Loop
-    ' CSV
+    ' CSV (Excel los abre igual que un libro)
     archivo = Dir(ruta & "*.csv")
     Do While archivo <> ""
-        ApilarCSV ruta & archivo, wsStage
+        ApilarArchivo ruta & archivo, wsStage
         MoverAProcesados ruta, archivo
         nImport = nImport + 1
         archivo = Dir()
@@ -58,32 +58,68 @@ Private Sub EscribirEncabezados(ByVal ws As Worksheet)
     Next j
 End Sub
 
-' Abre un libro externo y apila su primera hoja de datos en el staging
+' Abre un libro externo y apila su hoja de datos en el staging, MAPEANDO por
+' nombre de encabezado (no por posición). Así el archivo de entrada puede tener
+' las columnas en cualquier orden y con o sin tildes; las columnas que falten se
+' dejan vacías y las sobrantes se ignoran.
 Private Sub ApilarArchivo(ByVal fullpath As String, ByVal wsStage As Worksheet)
-    Dim wb As Workbook, wsO As Worksheet, rIni As Long, rFin As Long
+    Dim wb As Workbook, wsO As Worksheet
     On Error Resume Next
     Set wb = Workbooks.Open(fullpath, ReadOnly:=True, UpdateLinks:=0)
     If wb Is Nothing Then Exit Sub
     Set wsO = DetectarHojaDatos(wb)
-    If Not wsO Is Nothing Then
-        rIni = wsStage.Cells(wsStage.Rows.Count, 1).End(xlUp).Row + 1
-        Dim ultO As Long: ultO = wsO.Cells(wsO.Rows.Count, 1).End(xlUp).Row
-        If ultO > 1 Then
-            wsO.Range(wsO.Rows(2), wsO.Rows(ultO)).Copy
-            wsStage.Cells(rIni, 1).PasteSpecial xlPasteValues
-        End If
-    End If
+    If Not wsO Is Nothing Then CopiarMapeadoPorEncabezado wsO, wsStage
     wb.Close SaveChanges:=False
     Application.CutCopyMode = False
 End Sub
 
-Private Sub ApilarCSV(ByVal fullpath As String, ByVal wsStage As Worksheet)
-    Dim wb As Workbook
-    On Error Resume Next
-    Set wb = Workbooks.Open(fullpath, ReadOnly:=True)
-    ApilarArchivo fullpath, wsStage
-    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+' Copia los datos de la fuente al staging alineando por nombre de columna
+Private Sub CopiarMapeadoPorEncabezado(ByVal wsO As Worksheet, ByVal wsStage As Worksheet)
+    Dim canon As Variant: canon = EncabezadosCanonicos()
+    Dim nCanon As Long: nCanon = UBound(canon) - LBound(canon) + 1
+
+    Dim hdrRow As Long: hdrRow = FilaEncabezado(wsO)
+    If hdrRow = 0 Then Exit Sub
+    Dim ultCol As Long: ultCol = wsO.Cells(hdrRow, wsO.Columns.Count).End(xlToLeft).Column
+    Dim ultRow As Long: ultRow = wsO.Cells(wsO.Rows.Count, 1).End(xlUp).Row
+    If ultRow <= hdrRow Then Exit Sub
+
+    ' Mapa: encabezado normalizado de la fuente -> columna de la fuente
+    Dim srcMap As Object: Set srcMap = Modulo1_Principal.MapaColNorm(wsO, hdrRow)
+
+    Dim nRows As Long: nRows = ultRow - hdrRow
+    Dim src As Variant
+    src = wsO.Range(wsO.Cells(hdrRow + 1, 1), wsO.Cells(ultRow, ultCol)).Value
+    ' Si solo hay una fila de datos, .Value no es matriz 2D: normalizar
+    If nRows = 1 Then
+        Dim tmp() As Variant: ReDim tmp(1 To 1, 1 To ultCol)
+        Dim cc As Long
+        For cc = 1 To ultCol: tmp(1, cc) = wsO.Cells(hdrRow + 1, cc).Value: Next cc
+        src = tmp
+    End If
+
+    ' Construir salida en el ORDEN canónico
+    Dim out() As Variant: ReDim out(1 To nRows, 1 To nCanon)
+    Dim c As Long, i As Long, key As String
+    For c = 0 To nCanon - 1
+        key = Modulo1_Principal.NormHdr(CStr(canon(c)))
+        If srcMap.Exists(key) Then
+            Dim sc As Long: sc = srcMap(key)
+            For i = 1 To nRows: out(i, c + 1) = src(i, sc): Next i
+        End If
+    Next c
+
+    Dim rIni As Long: rIni = wsStage.Cells(wsStage.Rows.Count, 1).End(xlUp).Row + 1
+    wsStage.Cells(rIni, 1).Resize(nRows, nCanon).Value = out
 End Sub
+
+' Localiza la fila del encabezado en la fuente (por "PLACA" o "No. Viaje")
+Private Function FilaEncabezado(ByVal ws As Worksheet) As Long
+    Dim celda As Range
+    Set celda = ws.Cells.Find("PLACA", LookAt:=xlWhole, MatchCase:=False)
+    If celda Is Nothing Then Set celda = ws.Cells.Find("No. Viaje", LookAt:=xlPart, MatchCase:=False)
+    If Not celda Is Nothing Then FilaEncabezado = celda.Row Else FilaEncabezado = 1
+End Function
 
 ' Heuristica: hoja cuya fila 1 contiene "No. Viaje" o "PLACA"
 Private Function DetectarHojaDatos(ByVal wb As Workbook) As Worksheet

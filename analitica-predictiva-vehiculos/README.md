@@ -28,17 +28,22 @@ analitica-predictiva-vehiculos/
 ├── outputs/
 │   ├── tablas/                  ~40 CSV/JSON con todos los resultados
 │   └── graficos/                11 gráficos (PNG)
-├── informes/                     Los 10 entregables solicitados (Markdown)
+├── informes/                     Los entregables solicitados (Markdown)
 │   ├── 00_RESUMEN_EJECUTIVO.md
 │   ├── 01_INFORME_ESTADISTICO.md
 │   ├── 02_INFORME_CORRELACIONES.md
 │   ├── 03_ANALISIS_LOGISTICO_RETORNOS.md
 │   ├── 04_MODELO_PREDICTIVO.md
 │   ├── 05_RECOMENDACIONES_ESTRATEGICAS.md
-│   └── 06_MANUAL_USUARIO.md
+│   ├── 06_MANUAL_USUARIO.md
+│   ├── 07_INSTRUCTIVO_ALIMENTACION.md        Cómo alimentar la macro (paso a paso)
+│   └── Instructivo_Alimentacion_Macro.pdf    Versión imprimible del instructivo
 └── dashboard/
     ├── Dashboard_Planeacion_Vehiculos.xlsx   Tablero Excel 2016
+    ├── Plantilla_Carga_DATA.xlsx             Plantilla para alimentar la macro
     ├── build_dashboard.py                    Constructor del tablero
+    ├── build_plantilla.py                    Constructor de la plantilla
+    ├── build_instructivo_pdf.py              Genera el PDF del instructivo
     └── vba/                                   Macro profesional (7 módulos .bas)
 ```
 
