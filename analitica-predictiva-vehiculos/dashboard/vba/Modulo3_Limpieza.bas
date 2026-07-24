@@ -20,12 +20,14 @@ Public Sub LimpiarDatos()
 
     Dim cFecha As Long, cPlaca As Long, cOrig As Long, cDest As Long, cPeso As Long
     Dim cMes As Long, cAnio As Long, cMesAnio As Long
-    With Modulo1_Principal
-        cFecha = col(.NormHdr("Fecha")): cPlaca = col(.NormHdr("PLACA"))
-        cOrig = col(.NormHdr("Ciudad Origen")): cDest = col(.NormHdr("Ciudad Destino"))
-        cPeso = col(.NormHdr("PESO CARGADO (ton)"))
-        cMes = col(.NormHdr("MES")): cAnio = col(.NormHdr("ANIO")): cMesAnio = col(.NormHdr("Mes - Anio"))
-    End With
+    cFecha = col(Modulo1_Principal.NormHdr("Fecha"))
+    cPlaca = col(Modulo1_Principal.NormHdr("PLACA"))
+    cOrig = col(Modulo1_Principal.NormHdr("Ciudad Origen"))
+    cDest = col(Modulo1_Principal.NormHdr("Ciudad Destino"))
+    cPeso = col(Modulo1_Principal.NormHdr("PESO CARGADO (ton)"))
+    cMes = col(Modulo1_Principal.NormHdr("MES"))
+    cAnio = col(Modulo1_Principal.NormHdr("ANIO"))
+    cMesAnio = col(Modulo1_Principal.NormHdr("Mes - Anio"))
     ' Si falta alguna columna clave, aborta con mensaje claro
     If cFecha = 0 Or cPlaca = 0 Or cPeso = 0 Then
         Modulo1_Principal.Log_Registrar "Limpieza abortada: faltan columnas clave (Fecha/PLACA/PESO)."
