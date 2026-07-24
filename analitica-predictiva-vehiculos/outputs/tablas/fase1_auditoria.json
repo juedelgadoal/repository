@@ -1,0 +1,40 @@
+{
+  "n_registros": 131976,
+  "n_columnas": 36,
+  "rango_fechas": [
+    "2025-01-02",
+    "2026-06-30"
+  ],
+  "dias_calendario": 545,
+  "dias_con_operacion": 543,
+  "nulos_por_columna": {},
+  "total_nulos": 0,
+  "filas_duplicadas_exactas": 0,
+  "ids_viaje_duplicados": 177,
+  "registros_con_id_repetido": 354,
+  "dup_id_identicos_salvo_fecha": 312,
+  "inconsistencia_MES": 0,
+  "inconsistencia_ANIO": 0,
+  "peso_outliers_IQR_sup": 0,
+  "peso_min": 0.05,
+  "peso_max": 39.458,
+  "peso_ceros": 0,
+  "peso_negativos": 0,
+  "camioneta_sobrepeso_>5t": 1,
+  "origen_igual_destino": 11219,
+  "placas_multi_flota": 183,
+  "cardinalidad": {
+    "CLIENTE": 20,
+    "Negocio": 14,
+    "PLACA": 5385,
+    "corredor": 1752,
+    "par_ciudades": 1603,
+    "Ciudad Origen": 64,
+    "Ciudad Destino": 387,
+    "Zona Origen": 8,
+    "Zona Destino": 8,
+    "Tipología de camión": 6,
+    "Tipo Transportador": 3,
+    "Tipo Viaje": 6
+  }
+}

@@ -1,0 +1,14 @@
+variable_derivada,justificacion_estadistica
+dia_semana / dow,"Captura la estacionalidad semanal (Domingo≈0.16x, Martes≈1.31x del promedio). Spearman vs demanda -0.48."
+festivo,Los 26 festivos promedian 25 viajes/día vs 299 hábiles. Reduce la demanda ~91%.
+habil,Variable exógena con mayor correlación con la demanda (Pearson 0.70).
+fin_de_semana,Sábado opera pero Domingo casi no. Pearson -0.54 con la demanda.
+semana_iso / mes / trimestre,Estacionalidad de mediano plazo; base de la agregación semanal de planeación.
+fin_de_mes / inicio_de_mes,Picos de cierre comercial; fin_de_mes Spearman +0.16.
+"lag7, lag14, lag21, lag28",Autocorrelación semanal (lag14 Pearson 0.59). Predictores utilizables a 7+ días.
+roll7/14/30_mean,Nivel reciente de demanda; suaviza ruido diario. Base del pronóstico.
+"sin7/cos7, sin365/cos365",Términos de Fourier: estacionalidad continua sin explosión de dummies.
+frec_cliente/corredor/placa,Intensidad estructural de cada entidad; segmenta demanda estable vs esporádica.
+veh_por_pedido,"Vehículos por (fecha, cliente, corredor): tamaño de despacho; dimensiona lotes."
+peso_prom_corredor,Determina la tipología requerida por corredor (eta tipología->peso = 0.895).
+indice_utilizacion_placa,Viajes/mes por placa vs capacidad teórica; mide ociosidad de flota propia.

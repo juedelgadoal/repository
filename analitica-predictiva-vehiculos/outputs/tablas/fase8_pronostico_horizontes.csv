@@ -1,0 +1,6 @@
+horizonte,dias,vehiculos_totales,toneladas,veh_dia_prom,veh_propia,veh_empresas,veh_terceros,veh_tractomula,veh_sencillo,veh_turbo,veh_dobletroque
+1 día,1,298,4296,298.0,20,36,240,103,87,59,37
+3 días,3,859,12384,286.3,59,104,694,297,252,171,109
+7 días,7,1831,26398,261.6,126,223,1480,633,537,365,232
+15 días,15,3775,54424,251.7,261,460,3052,1305,1107,752,479
+30 días,30,7777,112121,259.2,538,949,6288,2690,2281,1550,988

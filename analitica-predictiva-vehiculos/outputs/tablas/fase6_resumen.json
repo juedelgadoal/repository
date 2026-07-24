@@ -1,0 +1,10 @@
+{
+  "retornos_vacios_estimados_pairwise": 100421,
+  "deadhead_ratio_pairwise_%": 76.1,
+  "reposicion_red_zonal": 27973,
+  "deadhead_ratio_zonal_%": 21.2,
+  "costo_18m_ceiling_COP": 98609635670.0,
+  "costo_18m_realista_COP": 64096263186.0,
+  "costo_anual_realista_COP": 42730842124.0,
+  "supuesto_factor_variable": 0.65
+}

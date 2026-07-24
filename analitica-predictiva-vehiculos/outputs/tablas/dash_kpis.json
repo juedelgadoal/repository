@@ -1,0 +1,27 @@
+{
+  "registros": 131976,
+  "meses_historia": 18,
+  "rango": [
+    "2025-01-02",
+    "2026-06-30"
+  ],
+  "vehiculos_dia_prom": 242.0,
+  "vehiculos_dia_habil_prom": 299.0,
+  "toneladas_totales": 1936583.0,
+  "toneladas_dia_prom": 3553.0,
+  "ton_por_viaje": 14.67,
+  "placas_unicas": 5385,
+  "clientes": 14,
+  "corredores": 1752,
+  "part_flota_propia_amplia_%": 21.0,
+  "part_terceros_%": 79.0,
+  "deadhead_ratio_pairwise_%": 76.1,
+  "deadhead_ratio_zonal_%": 21.2,
+  "costo_retorno_vacio_anual_COP": 42730842124.0,
+  "modelo_seleccionado": "Regresión Múltiple (OLS)",
+  "wape_semanal_%": 7.4,
+  "wape_diario_%": 12.2,
+  "r2_semanal": 0.83,
+  "reserva_proxima_semana": 2004,
+  "demanda_esperada_7d": 1831
+}

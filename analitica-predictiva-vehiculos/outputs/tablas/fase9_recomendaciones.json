@@ -1,0 +1,14 @@
+{
+  "reserva_proxima_semana": 2004,
+  "demanda_esperada_7d": 1831,
+  "colchon_%": 9.5,
+  "capacidad_propia_sem": 340,
+  "recomendaciones": [
+    "Reservar ~2,004 vehículos para la próxima semana (demanda esperada 1,831 + colchón 9% para 90% de nivel de servicio).",
+    "Usar la flota propia+afiliada al máximo: capacidad reciente ~340 viajes/sem (19% de la demanda); contratar terceros para el resto (~1,491 viajes).",
+    "Anticipar capacidad en corredores críticos (alta demanda + variabilidad): LA ESTRELLA -> CALDAS; MADRID -> BOGOTA D.C.; CARTAGENA -> CARTAGENA; IBAGUE -> CARTAGENA; SABANETA -> MEDELLIN.",
+    "Buscar carga de compensación (backhaul) en las rutas con mayor retorno vacío: MADRID→BOGOTA D.C.; SOPO→BOGOTA D.C.; SABANETA→MEDELLIN; SOACHA→BOGOTA D.C.; YUMBO→CALI.",
+    "Exigir programación con 7 días de anticipación a los clientes de mayor volumen (REVESTIMIENTO, PORCELANA SANITARIA, SUMICOL), que concentran 68% de la demanda.",
+    "Alertar por capacidad cuando la demanda semanal pronosticada supere en >10% la capacidad comprometida de flota propia+terceros habituales."
+  ]
+}

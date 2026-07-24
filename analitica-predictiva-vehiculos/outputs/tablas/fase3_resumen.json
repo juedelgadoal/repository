@@ -1,0 +1,82 @@
+{
+  "correlacion_demanda_top": {
+    "placas_activas": 0.964,
+    "viajes_terceros": 0.957,
+    "toneladas": 0.951,
+    "corredores_activos": 0.903,
+    "viajes_propia": 0.666,
+    "habil": 0.665,
+    "clientes_activos": 0.602,
+    "fin_de_semana": -0.54
+  },
+  "vif_max": {
+    "variable": "fin_de_semana",
+    "VIF": 136.97
+  },
+  "pares_redundantes": [
+    [
+      "viajes",
+      "toneladas",
+      0.982
+    ],
+    [
+      "viajes",
+      "placas_activas",
+      0.986
+    ],
+    [
+      "viajes",
+      "corredores_activos",
+      0.973
+    ],
+    [
+      "viajes",
+      "viajes_terceros",
+      0.987
+    ],
+    [
+      "toneladas",
+      "placas_activas",
+      0.961
+    ],
+    [
+      "toneladas",
+      "corredores_activos",
+      0.949
+    ],
+    [
+      "toneladas",
+      "viajes_terceros",
+      0.95
+    ],
+    [
+      "placas_activas",
+      "corredores_activos",
+      0.987
+    ],
+    [
+      "placas_activas",
+      "viajes_terceros",
+      0.981
+    ],
+    [
+      "corredores_activos",
+      "viajes_terceros",
+      0.971
+    ],
+    [
+      "mes",
+      "trimestre",
+      0.968
+    ]
+  ],
+  "eta_peso": {
+    "Tipología de camión": 0.895,
+    "Negocio": 0.494,
+    "Tipo Transportador": 0.362,
+    "Tipo Viaje": 0.34,
+    "Zona Origen": 0.225,
+    "CLIENTE": 0.196,
+    "Zona Destino": 0.176
+  }
+}

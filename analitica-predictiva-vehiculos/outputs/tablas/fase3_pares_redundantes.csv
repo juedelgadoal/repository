@@ -1,0 +1,12 @@
+var1,var2,pearson
+viajes,toneladas,0.982
+viajes,placas_activas,0.986
+viajes,corredores_activos,0.973
+viajes,viajes_terceros,0.987
+toneladas,placas_activas,0.961
+toneladas,corredores_activos,0.949
+toneladas,viajes_terceros,0.95
+placas_activas,corredores_activos,0.987
+placas_activas,viajes_terceros,0.981
+corredores_activos,viajes_terceros,0.971
+mes,trimestre,0.968

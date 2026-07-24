@@ -1,0 +1,12 @@
+{
+  "mejor_modelo": "XGBoost",
+  "metricas": {
+    "MAE": 30.14,
+    "RMSE": 39.27,
+    "MAPE": 61.99,
+    "WAPE": 12.41,
+    "R2": 0.88,
+    "n": 98.0
+  },
+  "cumple_meta_10pct": false
+}

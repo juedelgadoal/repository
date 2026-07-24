@@ -1,0 +1,27 @@
+MACRO VBA — PLANEACIÓN PREDICTIVA DE VEHÍCULOS (DIC)
+=====================================================
+
+Estos 7 módulos .bas conforman la macro profesional de un solo botón.
+Instrúcción de instalación paso a paso en:  informes/06_MANUAL_USUARIO.md (§3)
+
+Resumen rápido:
+  1. Abra Dashboard_Planeacion_Vehiculos.xlsx y guárdelo como .xlsm
+  2. Alt+F11 -> Archivo -> Importar archivo -> importe los 7 módulos
+  3. Inserte un botón en la hoja "Tablero" y asígnele la macro:  EjecutarTodo
+  4. Proteja el proyecto con la contraseña:  UCLOG
+     (Herramientas -> Propiedades de VBAProject -> Protección)
+
+Módulos:
+  Modulo1_Principal.bas    Orquestador (Sub EjecutarTodo = botón único)
+  Modulo2_Importar.bas     Importa carpeta Entrada y consolida histórico
+  Modulo3_Limpieza.bas     Depura y normaliza la hoja DATA
+  Modulo4_Indicadores.bas  Construye la serie diaria BASE_Diaria
+  Modulo5_Modelo.bas       Motor OLS (LINEST) + pronóstico recursivo 30 días
+  Modulo6_Dashboard.bas    Tablas dinámicas, segmentadores, gráficos y alertas
+  Modulo7_PowerPoint.bas   Informe ejecutivo automático en PowerPoint
+
+Flujo del botón: importar -> consolidar -> limpiar -> recalcular ->
+                 reentrenar+pronosticar -> actualizar tablero -> guardar
+                 histórico -> alertas -> informe PPT.
+
+Contraseña de protección del código: UCLOG
