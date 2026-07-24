@@ -16,7 +16,7 @@ random.seed(7); np.random.seed(7)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "DATA_Sintetica_6000.xlsx")
 N_OBJETIVO = 6000
 FECHA_INI = pd.Timestamp("2026-01-15")
-FECHA_FIN = pd.Timestamp("2026-07-15")
+FECHA_FIN = pd.Timestamp("2026-07-24")
 
 # Festivos de Colombia en la ventana (para deprimir la demanda esos días)
 FESTIVOS = set(pd.to_datetime([
