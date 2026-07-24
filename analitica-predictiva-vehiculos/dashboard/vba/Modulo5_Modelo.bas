@@ -45,6 +45,12 @@ Public Sub EjecutarModeloOLS()
     For d = t0 + 28 To fUlt
         If serie.Exists(d) Then filas = filas + 1
     Next d
+    ' Guard ANTES de dimensionar: con filas=0, ReDim(1 To 0) daria error 9
+    If filas < NFEAT + 2 Then
+        Modulo1_Principal.Log_Registrar "Modelo: observaciones insuficientes para LINEST (" & filas & ")."
+        Exit Sub
+    End If
+
     Dim X() As Double, Y() As Double
     ReDim X(1 To filas, 1 To NFEAT)
     ReDim Y(1 To filas, 1 To 1)
@@ -59,11 +65,6 @@ Public Sub EjecutarModeloOLS()
         End If
     Next d
 
-    If filas < NFEAT + 2 Then
-        Modulo1_Principal.Log_Registrar "Modelo: observaciones insuficientes para LINEST (" & filas & ")."
-        Exit Sub
-    End If
-
     ' --- LINEST: coeficientes (orden inverso; intercepto al final) ---
     ' Se usa Application.LinEst (no WorksheetFunction): ante matriz singular o
     ' colineal devuelve un valor de error en vez de lanzar una excepción.
@@ -73,12 +74,30 @@ Public Sub EjecutarModeloOLS()
         Modulo1_Principal.Log_Registrar "Modelo: LINEST no ajustó (datos colineales/insuficientes)."
         Exit Sub
     End If
-    ' res(1, 1..NFEAT+1): coef de la ultima X primero ... intercepto en col NFEAT+1
+
+    ' LINEST sin estadisticas devuelve UNA fila de coeficientes y VBA la entrega
+    ' como matriz de UNA dimension (res(1..17)); con otras variantes puede llegar
+    ' 2-D (res(1, 1..17)). Se admiten ambas formas. El coeficiente de la ultima X
+    ' viene primero y el intercepto al final.
+    Dim es2D As Boolean, u2 As Long
+    On Error Resume Next
+    u2 = UBound(res, 2)
+    es2D = (Err.Number = 0)
+    Err.Clear
+    On Error GoTo 0
+
     Dim coef() As Double: ReDim coef(0 To NFEAT)   ' coef(0)=intercepto, coef(1..NFEAT)
-    coef(0) = res(1, NFEAT + 1)
-    For j = 1 To NFEAT
-        coef(j) = res(1, NFEAT + 1 - j)
-    Next j
+    If es2D Then
+        coef(0) = res(1, NFEAT + 1)
+        For j = 1 To NFEAT
+            coef(j) = res(1, NFEAT + 1 - j)
+        Next j
+    Else
+        coef(0) = res(NFEAT + 1)
+        For j = 1 To NFEAT
+            coef(j) = res(NFEAT + 1 - j)
+        Next j
+    End If
 
     EscribirCoeficientes coef
     PronosticarRecursivo serie, coef, t0, fUlt
