@@ -117,7 +117,8 @@ Public Sub EjecutarTodo()
         Log_Registrar "Sin datos suficientes (" & FilasDatos() & " filas). Se detiene con aviso."
         MsgBox "No hay datos suficientes para generar el pronostico." & vbCrLf & vbCrLf & _
                "Que hacer:" & vbCrLf & _
-               "  1) Cree la carpeta 'Entrada' junto a este archivo." & vbCrLf & _
+               "  1) Abra la carpeta 'Entrada' de su ESCRITORIO" & vbCrLf & _
+               "     (la macro la crea automaticamente si no existe)." & vbCrLf & _
                "  2) Coloque alli su archivo de viajes (use la plantilla), o" & vbCrLf & _
                "     pegue el historico directamente en la hoja DATA." & vbCrLf & _
                "  3) Vuelva a pulsar el boton ACTUALIZAR TODO." & vbCrLf & vbCrLf & _
@@ -285,40 +286,33 @@ End Function
 '------------------------------------------------------------------------------
 ' 1) Importa todos los archivos nuevos de la carpeta Entrada
 '------------------------------------------------------------------------------
+' Carpeta de carga: 'Entrada' EN EL ESCRITORIO del usuario (independiente de
+' donde este guardado el libro, funciona aun con el libro en OneDrive).
+' WScript.Shell resuelve el Escritorio real, incluso redirigido a OneDrive o
+' con Windows en espanol ("Escritorio").
+Public Function RutaEntrada() As String
+    Dim esc As String
+    On Error Resume Next
+    esc = CreateObject("WScript.Shell").SpecialFolders("Desktop")
+    On Error GoTo 0
+    If Len(esc) = 0 Then esc = Environ$("USERPROFILE") & Application.PathSeparator & "Desktop"
+    RutaEntrada = esc & Application.PathSeparator & CARPETA_ENTRADA & Application.PathSeparator
+End Function
+
 Public Sub ImportarNuevosArchivos()
-    Dim base As String: base = ThisWorkbook.Path
-
-    ' Caso 1: libro nunca guardado (sin ruta en disco)
-    If Len(base) = 0 Then
-        Log_Registrar "Importacion omitida: guarde el libro en una carpeta local primero."
-        Exit Sub
-    End If
-
-    ' Caso 2: libro en OneDrive/SharePoint con Autoguardado (la ruta es una URL
-    ' https:// y Dir/MkDir no funcionan sobre URLs). Aviso claro y se omite.
-    If InStr(1, base, "http", vbTextCompare) = 1 Then
-        Log_Registrar "Importacion omitida: el libro esta en OneDrive (ruta URL)."
-        MsgBox "El libro esta guardado en OneDrive/SharePoint y la macro no puede " & _
-               "leer la carpeta 'Entrada' desde una ruta web." & vbCrLf & vbCrLf & _
-               "Solucion: guarde este archivo en una carpeta LOCAL (p. ej. C:\DIC\) " & _
-               "o desactive Autoguardado, y vuelva a ejecutar." & vbCrLf & vbCrLf & _
-               "Alternativa: pegue los datos directamente en la hoja DATA.", _
-               vbExclamation, "DIC - Planeacion"
-        Exit Sub
-    End If
-
     Dim ruta As String, archivo As String, nImport As Long
-    ruta = base & Application.PathSeparator & CARPETA_ENTRADA & Application.PathSeparator
+    ruta = RutaEntrada()
 
-    ' Caso 3: la carpeta no existe -> se CREA automaticamente y se avisa
+    ' Si la carpeta no existe en el Escritorio -> se CREA automaticamente y se avisa
     If Dir(ruta, vbDirectory) = "" Then
         On Error Resume Next
-        MkDir base & Application.PathSeparator & CARPETA_ENTRADA
+        MkDir Left$(ruta, Len(ruta) - 1)
         On Error GoTo 0
-        Log_Registrar "Carpeta Entrada creada en: " & ruta
-        MsgBox "La carpeta 'Entrada' no existia y fue creada automaticamente en:" & vbCrLf & _
+        Log_Registrar "Carpeta Entrada creada en el Escritorio: " & ruta
+        MsgBox "La carpeta 'Entrada' fue creada en su ESCRITORIO:" & vbCrLf & _
                ruta & vbCrLf & vbCrLf & _
-               "Coloque alli su archivo de viajes y vuelva a pulsar ACTUALIZAR TODO.", _
+               "Coloque alli su archivo de viajes (Plantilla_Carga_DATA.xlsx) " & _
+               "y vuelva a pulsar ACTUALIZAR TODO.", _
                vbInformation, "DIC - Planeacion"
         Exit Sub
     End If
