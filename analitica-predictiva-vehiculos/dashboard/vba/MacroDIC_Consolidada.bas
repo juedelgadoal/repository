@@ -286,16 +286,40 @@ End Function
 '------------------------------------------------------------------------------
 ' 1) Importa todos los archivos nuevos de la carpeta Entrada
 '------------------------------------------------------------------------------
-' Carpeta de carga: 'Entrada' EN EL ESCRITORIO del usuario (independiente de
-' donde este guardado el libro, funciona aun con el libro en OneDrive).
-' WScript.Shell resuelve el Escritorio real, incluso redirigido a OneDrive o
-' con Windows en espanol ("Escritorio").
-Public Function RutaEntrada() As String
-    Dim esc As String
+' Resuelve la ruta del ESCRITORIO real del usuario probando varios metodos:
+' WScript puede estar bloqueado por politicas corporativas, y el Escritorio
+' puede estar redirigido a OneDrive con nombre "Desktop" o "Escritorio".
+Private Function RutaEscritorio() As String
+    Dim cand(1 To 6) As String, i As Long
     On Error Resume Next
-    esc = CreateObject("WScript.Shell").SpecialFolders("Desktop")
+    cand(1) = CreateObject("WScript.Shell").SpecialFolders("Desktop")
+    cand(2) = CreateObject("Shell.Application").Namespace(16).Self.Path   ' Shell32 (no usa WSH)
+    cand(3) = Environ$("USERPROFILE") & "\Desktop"
+    cand(4) = Environ$("USERPROFILE") & "\OneDrive\Escritorio"
+    cand(5) = Environ$("USERPROFILE") & "\OneDrive\Desktop"
+    cand(6) = Environ$("OneDrive") & "\Escritorio"
     On Error GoTo 0
-    If Len(esc) = 0 Then esc = Environ$("USERPROFILE") & Application.PathSeparator & "Desktop"
+    For i = 1 To 6
+        If Len(cand(i)) > 3 Then
+            If Dir(cand(i), vbDirectory) <> "" Then
+                RutaEscritorio = cand(i)
+                Exit Function
+            End If
+        End If
+    Next i
+    RutaEscritorio = ""   ' no se pudo resolver
+End Function
+
+' Carpeta de carga: 'Entrada' en el Escritorio; si el Escritorio no se puede
+' resolver, respaldo junto al libro (solo si tiene ruta local).
+Public Function RutaEntrada() As String
+    Dim esc As String: esc = RutaEscritorio()
+    If Len(esc) = 0 Then
+        If Len(ThisWorkbook.Path) > 0 And InStr(1, ThisWorkbook.Path, "http", vbTextCompare) <> 1 Then
+            esc = ThisWorkbook.Path
+        End If
+    End If
+    If Len(esc) = 0 Then RutaEntrada = "": Exit Function
     RutaEntrada = esc & Application.PathSeparator & CARPETA_ENTRADA & Application.PathSeparator
 End Function
 
@@ -303,17 +327,36 @@ Public Sub ImportarNuevosArchivos()
     Dim ruta As String, archivo As String, nImport As Long
     ruta = RutaEntrada()
 
-    ' Si la carpeta no existe en el Escritorio -> se CREA automaticamente y se avisa
+    If Len(ruta) = 0 Then
+        Log_Registrar "No se pudo resolver el Escritorio ni una carpeta local del libro."
+        MsgBox "No fue posible determinar donde crear la carpeta 'Entrada'." & vbCrLf & vbCrLf & _
+               "Cree manualmente una carpeta llamada Entrada en su Escritorio y " & _
+               "coloque alli su archivo de viajes; o pegue los datos en la hoja DATA.", _
+               vbExclamation, "DIC - Planeacion"
+        Exit Sub
+    End If
+
+    ' Si la carpeta no existe -> se crea, SE VERIFICA y se ABRE en el Explorador
     If Dir(ruta, vbDirectory) = "" Then
         On Error Resume Next
         MkDir Left$(ruta, Len(ruta) - 1)
         On Error GoTo 0
-        Log_Registrar "Carpeta Entrada creada en el Escritorio: " & ruta
-        MsgBox "La carpeta 'Entrada' fue creada en su ESCRITORIO:" & vbCrLf & _
-               ruta & vbCrLf & vbCrLf & _
-               "Coloque alli su archivo de viajes (Plantilla_Carga_DATA.xlsx) " & _
-               "y vuelva a pulsar ACTUALIZAR TODO.", _
-               vbInformation, "DIC - Planeacion"
+        If Dir(ruta, vbDirectory) <> "" Then
+            Log_Registrar "Carpeta Entrada creada: " & ruta
+            On Error Resume Next
+            Shell "explorer.exe """ & Left$(ruta, Len(ruta) - 1) & """", vbNormalFocus
+            On Error GoTo 0
+            MsgBox "La carpeta 'Entrada' fue creada y ABIERTA en el Explorador:" & vbCrLf & _
+                   ruta & vbCrLf & vbCrLf & _
+                   "Coloque alli su archivo de viajes (Plantilla_Carga_DATA.xlsx) " & _
+                   "y vuelva a pulsar ACTUALIZAR TODO.", _
+                   vbInformation, "DIC - Planeacion"
+        Else
+            Log_Registrar "FALLO al crear la carpeta: " & ruta
+            MsgBox "No se pudo crear la carpeta:" & vbCrLf & ruta & vbCrLf & vbCrLf & _
+                   "Creela manualmente (o pegue los datos en la hoja DATA) y " & _
+                   "vuelva a ejecutar.", vbExclamation, "DIC - Planeacion"
+        End If
         Exit Sub
     End If
 
