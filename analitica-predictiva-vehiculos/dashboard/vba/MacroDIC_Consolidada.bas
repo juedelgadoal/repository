@@ -286,11 +286,40 @@ End Function
 ' 1) Importa todos los archivos nuevos de la carpeta Entrada
 '------------------------------------------------------------------------------
 Public Sub ImportarNuevosArchivos()
-    Dim ruta As String, archivo As String, nImport As Long
-    ruta = ThisWorkbook.Path & Application.PathSeparator & CARPETA_ENTRADA & Application.PathSeparator
+    Dim base As String: base = ThisWorkbook.Path
 
+    ' Caso 1: libro nunca guardado (sin ruta en disco)
+    If Len(base) = 0 Then
+        Log_Registrar "Importacion omitida: guarde el libro en una carpeta local primero."
+        Exit Sub
+    End If
+
+    ' Caso 2: libro en OneDrive/SharePoint con Autoguardado (la ruta es una URL
+    ' https:// y Dir/MkDir no funcionan sobre URLs). Aviso claro y se omite.
+    If InStr(1, base, "http", vbTextCompare) = 1 Then
+        Log_Registrar "Importacion omitida: el libro esta en OneDrive (ruta URL)."
+        MsgBox "El libro esta guardado en OneDrive/SharePoint y la macro no puede " & _
+               "leer la carpeta 'Entrada' desde una ruta web." & vbCrLf & vbCrLf & _
+               "Solucion: guarde este archivo en una carpeta LOCAL (p. ej. C:\DIC\) " & _
+               "o desactive Autoguardado, y vuelva a ejecutar." & vbCrLf & vbCrLf & _
+               "Alternativa: pegue los datos directamente en la hoja DATA.", _
+               vbExclamation, "DIC - Planeacion"
+        Exit Sub
+    End If
+
+    Dim ruta As String, archivo As String, nImport As Long
+    ruta = base & Application.PathSeparator & CARPETA_ENTRADA & Application.PathSeparator
+
+    ' Caso 3: la carpeta no existe -> se CREA automaticamente y se avisa
     If Dir(ruta, vbDirectory) = "" Then
-        Log_Registrar "Carpeta Entrada no existe; se omite importacion."
+        On Error Resume Next
+        MkDir base & Application.PathSeparator & CARPETA_ENTRADA
+        On Error GoTo 0
+        Log_Registrar "Carpeta Entrada creada en: " & ruta
+        MsgBox "La carpeta 'Entrada' no existia y fue creada automaticamente en:" & vbCrLf & _
+               ruta & vbCrLf & vbCrLf & _
+               "Coloque alli su archivo de viajes y vuelva a pulsar ACTUALIZAR TODO.", _
+               vbInformation, "DIC - Planeacion"
         Exit Sub
     End If
 
