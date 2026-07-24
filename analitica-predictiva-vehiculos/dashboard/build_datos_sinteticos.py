@@ -8,12 +8,16 @@ estacionalidad semanal (domingos y festivos bajos) + tendencia suave.
 
 TODO ES FICTICIO: placas, No. Viaje y volúmenes son simulados.
 """
-import os, random
+import os, sys, random
 import numpy as np
 import pandas as pd
 
-random.seed(7); np.random.seed(7)
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "DATA_Sintetica_6000.xlsx")
+# Uso: python3 build_datos_sinteticos.py [semilla] [archivo_salida] [base_no_viaje]
+SEED = int(sys.argv[1]) if len(sys.argv) > 1 else 7
+NOMBRE = sys.argv[2] if len(sys.argv) > 2 else "DATA_Sintetica_6000.xlsx"
+ID_BASE = int(sys.argv[3]) if len(sys.argv) > 3 else 6100600000
+random.seed(SEED); np.random.seed(SEED)
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), NOMBRE)
 N_OBJETIVO = 6000
 FECHA_INI = pd.Timestamp("2026-01-15")
 FECHA_FIN = pd.Timestamp("2026-07-24")
@@ -113,7 +117,7 @@ while dif != 0 and habiles:
 
 # ---- 2) Generar las filas ----
 filas = []
-nviaje = 6100600000
+nviaje = ID_BASE
 for d, n in zip(dias, conteo):
     for _ in range(int(n)):
         ci = np.random.choice(len(CORREDORES), p=cor_pesos)
@@ -145,7 +149,7 @@ for d, n in zip(dias, conteo):
 COLS = ["No. Viaje", "Negocio", "Ciudad Origen", "Ciudad Destino", "Fecha", "Zona Destino",
         "Tipología de camión", "Tipo Transportador", "Tipo Negocio", "MES", "AÑO", "Mes - Año",
         "Tipo Viaje", "Zona Origen", "CLIENTE", "PLACA", "PESO CARGADO (ton)"]
-df = pd.DataFrame(filas, columns=COLS).sample(frac=1, random_state=7).reset_index(drop=True)
+df = pd.DataFrame(filas, columns=COLS).sample(frac=1, random_state=SEED).reset_index(drop=True)
 
 with pd.ExcelWriter(OUT, engine="openpyxl", datetime_format="yyyy-mm-dd") as xw:
     df.to_excel(xw, sheet_name="CARGA", index=False)
