@@ -29,6 +29,9 @@ Public Const HOJA_PRON As String = "Pronostico"
 Public Const UMBRAL_ALERTA As Double = 0.1         ' 10% (se lee de Parametros!B4 si existe)
 Public Const CARPETA_ENTRADA As String = "Entrada" ' subcarpeta con archivos nuevos
 
+' Paso en curso (para diagnosticar dónde falla si ocurre un error)
+Public gPaso As String
+
 '------------------------------------------------------------------------------
 ' PUNTO DE ENTRADA UNICO - asignar este Sub al boton del Tablero
 '------------------------------------------------------------------------------
@@ -39,18 +42,33 @@ Public Sub EjecutarTodo()
     OptimizarInicio                         ' apaga pantalla/calculo automatico
 
     Log_Registrar "===== INICIO DE ACTUALIZACION ====="
-    Modulo2_Importar.ImportarNuevosArchivos ' 1
-    Modulo2_Importar.ConsolidarHistorico    ' 2
-    Modulo3_Limpieza.LimpiarDatos           ' 3
-    Modulo4_Indicadores.RecalcularIndicadores ' 4
-    Modulo5_Modelo.EjecutarModeloOLS        ' 5
-    Modulo5_Modelo.GuardarHistoricoPrediccion ' 7
-    Modulo6_Dashboard.ActualizarTablasYGraficos ' 6
-    Modulo6_Dashboard.EvaluarAlertas        ' 8
+    gPaso = "1. Importar archivos":     Modulo2_Importar.ImportarNuevosArchivos
+    gPaso = "2. Consolidar historico":  Modulo2_Importar.ConsolidarHistorico
+    gPaso = "3. Limpiar datos":         Modulo3_Limpieza.LimpiarDatos
+
+    ' ¿Hay datos para trabajar? Si no, detener con un aviso claro (no un error).
+    If FilasDatos() < 60 Then
+        OptimizarFin
+        Log_Registrar "Sin datos suficientes (" & FilasDatos() & " filas). Se detiene con aviso."
+        MsgBox "No hay datos suficientes para generar el pronostico." & vbCrLf & vbCrLf & _
+               "Que hacer:" & vbCrLf & _
+               "  1) Cree la carpeta 'Entrada' junto a este archivo." & vbCrLf & _
+               "  2) Coloque alli su archivo de viajes (use la plantilla), o" & vbCrLf & _
+               "     pegue el historico directamente en la hoja DATA." & vbCrLf & _
+               "  3) Vuelva a pulsar el boton ACTUALIZAR TODO." & vbCrLf & vbCrLf & _
+               "Se requieren al menos 60 dias de historia.", vbExclamation, "DIC - Planeacion"
+        Exit Sub
+    End If
+
+    gPaso = "4. Recalcular indicadores": Modulo4_Indicadores.RecalcularIndicadores
+    gPaso = "5. Ejecutar modelo OLS":   Modulo5_Modelo.EjecutarModeloOLS
+    gPaso = "7. Guardar historico pred.": Modulo5_Modelo.GuardarHistoricoPrediccion
+    gPaso = "6. Actualizar tablas/graficos": Modulo6_Dashboard.ActualizarTablasYGraficos
+    gPaso = "8. Evaluar alertas":       Modulo6_Dashboard.EvaluarAlertas
 
     ' 9. Informe ejecutivo en PowerPoint (opcional segun parametro)
     If LeerParametroBool("GenerarPPT", True) Then
-        Modulo7_PowerPoint.GenerarInformeEjecutivo
+        gPaso = "9. Informe PowerPoint": Modulo7_PowerPoint.GenerarInformeEjecutivo
     End If
 
     Log_Registrar "===== FIN OK en " & Format(Timer - t0, "0.0") & " s ====="
@@ -60,10 +78,15 @@ Public Sub EjecutarTodo()
     Exit Sub
 
 Errores:
+    ' Capturar el error ANTES de llamar cualquier rutina (que reinicia Err a 0)
+    Dim nErr As Long: nErr = Err.Number
+    Dim sErr As String: sErr = Err.Description
+    Dim sPaso As String: sPaso = gPaso
     OptimizarFin
-    Log_Registrar "ERROR " & Err.Number & ": " & Err.Description
-    MsgBox "Ocurrio un error y el proceso se detuvo:" & vbCrLf & _
-           "[" & Err.Number & "] " & Err.Description, vbCritical, "DIC - Planeacion"
+    Log_Registrar "ERROR en [" & sPaso & "] " & nErr & ": " & sErr
+    MsgBox "Ocurrio un error y el proceso se detuvo." & vbCrLf & vbCrLf & _
+           "Paso: " & sPaso & vbCrLf & _
+           "Codigo: [" & nErr & "]  " & sErr, vbCritical, "DIC - Planeacion"
 End Sub
 
 '------------------------------------------------------------------------------
@@ -136,6 +159,17 @@ End Function
 
 Public Function UltimaFila(ByVal ws As Worksheet, Optional ByVal col As Long = 1) As Long
     UltimaFila = ws.Cells(ws.Rows.Count, col).End(xlUp).Row
+End Function
+
+' Nº de filas de datos (sin encabezado) en la hoja DATA; 0 si no existe/está vacía
+Public Function FilasDatos() As Long
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(HOJA_DATOS)
+    On Error GoTo 0
+    If ws Is Nothing Then FilasDatos = 0: Exit Function
+    FilasDatos = Application.WorksheetFunction.Max(0, _
+                 ws.Cells(ws.Rows.Count, 1).End(xlUp).Row - 1)
 End Function
 
 '------------------------------------------------------------------------------

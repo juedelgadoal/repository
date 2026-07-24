@@ -168,8 +168,13 @@ Private Sub PronosticarRecursivo(ByVal serie As Object, ByRef coef() As Double, 
 End Sub
 
 Private Function TonPromedioReciente() As Double
-    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
+    On Error GoTo 0
+    If ws Is Nothing Then TonPromedioReciente = 14.7: Exit Function
     Dim ult As Long: ult = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If ult < 2 Then TonPromedioReciente = 14.7: Exit Function
     Dim ini As Long: ini = Application.Max(2, ult - 56)
     Dim v As Double, t As Double
     v = Application.WorksheetFunction.Sum(ws.Range(ws.Cells(ini, 2), ws.Cells(ult, 2)))
@@ -202,7 +207,14 @@ End Sub
 ' 7) Historico de predicciones - snapshot con fecha de corrida
 '------------------------------------------------------------------------------
 Public Sub GuardarHistoricoPrediccion()
-    Dim wsP As Worksheet: Set wsP = ThisWorkbook.Worksheets(Modulo1_Principal.HOJA_PRON)
+    Dim wsP As Worksheet
+    On Error Resume Next
+    Set wsP = ThisWorkbook.Worksheets(Modulo1_Principal.HOJA_PRON)
+    On Error GoTo 0
+    If wsP Is Nothing Then
+        Modulo1_Principal.Log_Registrar "Historico pred.: falta la hoja Pronostico; se omite."
+        Exit Sub
+    End If
     Dim wsH As Worksheet: Set wsH = Modulo1_Principal.ObtenerHoja("Hist_Predicciones")
     If Application.WorksheetFunction.CountA(wsH.Rows(1)) = 0 Then
         wsH.Range("A1:D1").Value = Array("FechaCorrida", "Horizonte", "Vehiculos_pred", "Toneladas_pred")

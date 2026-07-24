@@ -99,9 +99,13 @@ End Sub
 
 Private Function CapacidadComprometida() As Double
     ' Capacidad = viajes/sem promedio de las ultimas 8 semanas (flota habitual)
-    Dim ws As Worksheet: Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("BASE_Diaria")
+    On Error GoTo 0
     If ws Is Nothing Then CapacidadComprometida = 0: Exit Function
     Dim ult As Long: ult = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    If ult < 2 Then CapacidadComprometida = 0: Exit Function
     Dim ini As Long: ini = Application.Max(2, ult - 55)
     Dim s As Double: s = Application.WorksheetFunction.Sum(ws.Range(ws.Cells(ini, 2), ws.Cells(ult, 2)))
     Dim dias As Long: dias = ult - ini + 1
